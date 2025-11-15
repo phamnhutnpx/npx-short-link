@@ -41,12 +41,6 @@ export function AdminDashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!token) return;
-    window.localStorage.setItem(TOKEN_KEY, token);
-    void fetchLinks();
-  }, [token]);
-
   const fetchLinks = useCallback(async () => {
     if (!token) return;
     try {
@@ -68,6 +62,12 @@ export function AdminDashboard() {
       setIsLoading(false);
     }
   }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    window.localStorage.setItem(TOKEN_KEY, token);
+    void fetchLinks();
+  }, [token, fetchLinks]);
 
   const fetchAnalytics = useCallback(
     async (slug: string) => {

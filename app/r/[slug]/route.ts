@@ -24,27 +24,32 @@ export async function GET(request: NextRequest, { params }: { params: { slug: st
   const referrer = getReferrer(request);
   const country = await lookupCountry(ip);
 
-  await prisma.$transaction([
-    prisma.click.create({
-      data: {
-        linkId: link.id,
-        ip,
-        userAgent,
-        referrer,
-        country
-      }
-    }),
-    prisma.link.update({
-      where: { id: link.id },
-      data: {
-        clickCount: {
-          increment: 1
-        }
-      }
-    })
-  ]).catch((error) => {
-    logger.error('Failed to log click analytics', { error: (error as Error).message, slug });
-  });
+  await prisma
+    .$transaction([
+      prisma.click.create({
+        data: {
+          linkId: link.id,
+          ip,
+          userAgent,
+          referrer,
+          country,
+        },
+      }),
+      prisma.link.update({
+        where: { id: link.id },
+        data: {
+          clickCount: {
+            increment: 1,
+          },
+        },
+      }),
+    ])
+    .catch((error: unknown) => {
+      logger.error("Failed to log click analytics", {
+        error: error instanceof Error ? error.message : String(error),
+        slug,
+      });
+    });
 
   return NextResponse.redirect(destinationUrl, { status: 301 });
 }
