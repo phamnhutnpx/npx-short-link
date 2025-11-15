@@ -3,8 +3,8 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
-# Fix OpenSSL for Prisma
-RUN apk add --no-cache openssl1.1-compat
+# Install OpenSSL for Prisma (Alpine v3.22+ uses openssl3, Prisma will auto-detect)
+RUN apk add --no-cache openssl libc6-compat
 
 FROM base AS deps
 WORKDIR /app
