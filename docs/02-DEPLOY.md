@@ -307,21 +307,118 @@ sudo systemctl reload nginx
 
 ---
 
-## BƯỚC 8: SETUP SSL (Trên VPS)
+## BƯỚC 8: SETUP SSL/HTTPS (Trên VPS)
+
+### 8.1. Kiểm tra Certbot đã cài chưa
+
+```bash
+which certbot
+```
+
+**Nếu chưa có:**
+```bash
+sudo apt update
+sudo apt install -y certbot python3-certbot-nginx
+```
+
+### 8.2. Đảm bảo DNS đã trỏ đúng
+
+```bash
+# Kiểm tra DNS
+nslookup url.npxofficial.com
+
+# Phải trỏ về IP VPS của bạn
+```
+
+**Quan trọng:** DNS phải trỏ đúng trước khi chạy Certbot!
+
+### 8.3. Chạy Certbot để lấy SSL certificate
 
 ```bash
 sudo certbot --nginx -d url.npxofficial.com
 ```
 
-**Nhập email và chọn "Y" để đồng ý**
+**Quá trình:**
+1. Nhập email (để nhận thông báo renewal)
+2. Chọn "Y" để đồng ý Terms of Service
+3. Chọn "Y" để share email với EFF (tùy chọn)
+4. Chọn "2" để redirect HTTP → HTTPS (khuyến nghị)
+
+### 8.4. Kiểm tra SSL
+
+```bash
+# Test từ VPS
+curl -I https://url.npxofficial.com
+
+# Hoặc test từ browser
+# Mở: https://url.npxofficial.com
+```
+
+**Phải thấy:** Padlock icon và "Secure" trong browser
+
+### 8.5. Kiểm tra auto-renewal
+
+```bash
+# Test renewal (dry-run)
+sudo certbot renew --dry-run
+
+# Xem renewal schedule
+sudo systemctl status certbot.timer
+```
+
+**Certbot tự động renew certificate mỗi 90 ngày**
+
+---
+
+### 8.6. Nếu gặp lỗi "Domain not resolving"
+
+**Nguyên nhân:** DNS chưa propagate hoặc trỏ sai
+
+**Giải pháp:**
+1. Kiểm tra DNS: `nslookup url.npxofficial.com`
+2. Đợi 5-30 phút để DNS propagate
+3. Thử lại: `sudo certbot --nginx -d url.npxofficial.com`
+
+---
+
+### 8.7. Nếu gặp lỗi "Failed to obtain certificate"
+
+**Nguyên nhân có thể:**
+- Port 80 bị chặn bởi firewall
+- Nginx chưa chạy
+- Domain trỏ sai
+
+**Giải pháp:**
+```bash
+# Kiểm tra firewall
+sudo ufw status
+
+# Đảm bảo port 80/443 mở
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+# Kiểm tra Nginx
+sudo systemctl status nginx
+
+# Thử lại
+sudo certbot --nginx -d url.npxofficial.com
+```
 
 ---
 
 ## ✅ HOÀN THÀNH!
 
 ### Kiểm tra ứng dụng:
-- **Trang chủ**: https://url.npxofficial.com (hoặc http:// nếu chưa có SSL)
-- **Admin**: https://url.npxofficial.com/admin
+- **Trang chủ**: http://url.npxofficial.com (hoặc https:// sau khi setup SSL)
+- **Admin**: http://url.npxofficial.com/admin
+
+### Setup SSL/HTTPS:
+👉 **Xem: [SETUP-SSL.md](./SETUP-SSL.md)** - Hướng dẫn setup SSL đầy đủ
+
+**Lệnh nhanh:**
+```bash
+sudo certbot --nginx -d url.npxofficial.com
+```
 
 ### Lưu thông tin quan trọng:
 ```bash
@@ -331,6 +428,7 @@ cat .env | grep ADMIN_TOKEN
 
 ### 📋 Checklist kiểm tra đầy đủ:
 👉 **Xem: [CHECKLIST-DEPLOY.md](./CHECKLIST-DEPLOY.md)** để kiểm tra tất cả các bước
+👉 **Xem: [FINAL-CHECK.md](./FINAL-CHECK.md)** - Kiểm tra cuối cùng
 
 ---
 
