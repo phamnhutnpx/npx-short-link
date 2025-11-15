@@ -14,3 +14,8 @@ coverage
 .vscode
 *.log
 *.sqlite
+dist
+build
+*.swp
+*.swo
+*~

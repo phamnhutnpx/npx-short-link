@@ -15,8 +15,19 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Biến
-PROJECT_DIR="/var/www/tiny-url"
+# Biến - Tự động detect thư mục hiện tại
+CURRENT_DIR=$(pwd)
+if [ -f "$CURRENT_DIR/package.json" ]; then
+    PROJECT_DIR="$CURRENT_DIR"
+else
+    # Nếu không tìm thấy package.json, thử /var/www/tiny-url
+    if [ -f "/var/www/tiny-url/package.json" ]; then
+        PROJECT_DIR="/var/www/tiny-url"
+    else
+        echo "❌ Không tìm thấy project. Vui lòng chạy script từ thư mục root của project."
+        exit 1
+    fi
+fi
 DOMAIN="url.npxofficial.com"
 
 # Hàm kiểm tra lỗi
@@ -67,12 +78,15 @@ fi
 echo -e "${GREEN}✅ Môi trường đã sẵn sàng${NC}"
 echo ""
 
-# Bước 2: Tạo thư mục project
-echo -e "${GREEN}📁 Bước 2: Tạo thư mục project...${NC}"
-sudo mkdir -p $PROJECT_DIR
-sudo chown -R $USER:$USER $PROJECT_DIR
+# Bước 2: Kiểm tra và vào thư mục project
+echo -e "${GREEN}📁 Bước 2: Kiểm tra thư mục project...${NC}"
+if [ ! -d "$PROJECT_DIR" ]; then
+    echo "Tạo thư mục $PROJECT_DIR..."
+    sudo mkdir -p $PROJECT_DIR
+    sudo chown -R $USER:$USER $PROJECT_DIR
+fi
 cd $PROJECT_DIR
-echo -e "${GREEN}✅ Thư mục đã tạo: $PROJECT_DIR${NC}"
+echo -e "${GREEN}✅ Đang làm việc tại: $PROJECT_DIR${NC}"
 echo ""
 
 # Bước 3: Upload code (người dùng cần upload code vào thư mục này)

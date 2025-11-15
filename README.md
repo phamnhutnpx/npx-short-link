@@ -1,5 +1,9 @@
 # tiny-url
 
+> 📖 **Hướng dẫn sử dụng**: Đọc [docs/01-HUONG-DAN-SU-DUNG.md](./docs/01-HUONG-DAN-SU-DUNG.md)
+> 
+> 🚀 **Hướng dẫn deploy**: Đọc [docs/02-DEPLOY.md](./docs/02-DEPLOY.md) - Tất cả trong 1 file!
+
 Minimal example (authenticated):
 
 ```
