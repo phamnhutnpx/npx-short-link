@@ -3,6 +3,8 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 ENV NODE_ENV=production
+# Fix OpenSSL for Prisma
+RUN apk add --no-cache openssl1.1-compat
 
 FROM base AS deps
 WORKDIR /app

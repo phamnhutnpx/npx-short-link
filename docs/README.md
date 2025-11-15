@@ -20,6 +20,8 @@
 | 01 | [HUONG-DAN-SU-DUNG.md](./01-HUONG-DAN-SU-DUNG.md) | Sử dụng app |
 | 02 | [DEPLOY.md](./02-DEPLOY.md) | Hướng dẫn deploy ⭐ |
 | 03 | [HUONG-DAN-DATABASE.md](./03-HUONG-DAN-DATABASE.md) | Quản lý database |
+| - | [CHECKLIST-DEPLOY.md](./CHECKLIST-DEPLOY.md) | Checklist kiểm tra deploy |
+| - | [FIX-PORT-CONFLICT.md](./FIX-PORT-CONFLICT.md) | Xử lý xung đột port |
 
 ---
 

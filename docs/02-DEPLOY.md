@@ -320,7 +320,7 @@ sudo certbot --nginx -d url.npxofficial.com
 ## ✅ HOÀN THÀNH!
 
 ### Kiểm tra ứng dụng:
-- **Trang chủ**: https://url.npxofficial.com
+- **Trang chủ**: https://url.npxofficial.com (hoặc http:// nếu chưa có SSL)
 - **Admin**: https://url.npxofficial.com/admin
 
 ### Lưu thông tin quan trọng:
@@ -328,6 +328,9 @@ sudo certbot --nginx -d url.npxofficial.com
 # Xem ADMIN_TOKEN (để vào admin)
 cat .env | grep ADMIN_TOKEN
 ```
+
+### 📋 Checklist kiểm tra đầy đủ:
+👉 **Xem: [CHECKLIST-DEPLOY.md](./CHECKLIST-DEPLOY.md)** để kiểm tra tất cả các bước
 
 ---
 
