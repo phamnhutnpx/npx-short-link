@@ -74,22 +74,71 @@ chmod +x scripts/auto-deploy.sh
 
 ---
 
-## BƯỚC 4: CẤU HÌNH DNS
+## BƯỚC 4: CHẠY DATABASE MIGRATIONS (Sau khi containers đã chạy)
 
-### 4.1. Lấy IP VPS
+Sau khi Docker build thành công và containers đã start, cần chạy migrations:
+
+```bash
+# Vào thư mục project
+cd ~/npx-short-link
+# hoặc
+cd /var/www/tiny-url
+
+# Chạy migrations
+docker compose -f docker-compose.prod.yml run --rm web npx prisma migrate deploy
+
+# Seed dữ liệu mẫu (tùy chọn)
+docker compose -f docker-compose.prod.yml run --rm web npm run prisma:seed
+```
+
+**Kiểm tra containers đang chạy:**
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+Bạn sẽ thấy:
+- ✅ `npx-short-link-db-1` - Database container (Healthy)
+- ✅ `npx-short-link-web-1` - Web app container (Started)
+
+---
+
+## BƯỚC 5: KIỂM TRA ỨNG DỤNG
+
+### 5.1. Kiểm tra app có chạy không
+```bash
+# Test local
+curl http://localhost:3000
+
+# Xem logs
+docker compose -f docker-compose.prod.yml logs -f web
+```
+
+### 5.2. Lưu ADMIN_TOKEN
+```bash
+# Xem ADMIN_TOKEN (quan trọng!)
+cat .env | grep ADMIN_TOKEN
+
+# Lưu lại token này để vào admin sau
+```
+
+---
+
+## BƯỚC 6: CẤU HÌNH DNS
+
+### 6.1. Lấy IP VPS
 ```bash
 curl ifconfig.me
 ```
 
-### 4.2. Vào control panel domain (GoDaddy, Namecheap, Cloudflare, etc.)
+### 6.2. Vào control panel domain (GoDaddy, Namecheap, Cloudflare, etc.)
 
-### 4.3. Thêm A Record:
+### 6.3. Thêm A Record:
 - **Type**: `A`
 - **Name**: `url` (hoặc `@`)
 - **Value**: `IP_VPS` (IP bạn vừa lấy)
 - **TTL**: `3600`
 
-### 4.4. Đợi DNS propagate (5-30 phút)
+### 6.4. Đợi DNS propagate (5-30 phút)
 
 Kiểm tra:
 ```bash
@@ -98,7 +147,167 @@ nslookup url.npxofficial.com
 
 ---
 
-## BƯỚC 5: SETUP SSL (Trên VPS)
+## BƯỚC 7: CẤU HÌNH NGINX (Nếu chưa tự động)
+
+### 7.1. Kiểm tra Nginx config đã tạo chưa
+
+```bash
+# Kiểm tra file config có tồn tại không
+ls -la /etc/nginx/sites-available/tiny-url
+
+# Xem nội dung file (nếu có)
+cat /etc/nginx/sites-available/tiny-url
+
+# Kiểm tra symlink đã tạo chưa
+ls -la /etc/nginx/sites-enabled/ | grep tiny-url
+```
+
+**Nếu file chưa tồn tại hoặc rỗng (0 bytes)**, tiếp tục bước 7.2.
+
+### 7.2. Tạo Nginx config
+
+**Cách 1: Dùng lệnh đơn giản (Khuyến nghị)**
+
+```bash
+# Tạo file config
+sudo bash -c 'cat > /etc/nginx/sites-available/tiny-url << "EOF"
+server {
+    listen 80;
+    server_name url.npxofficial.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+EOF'
+
+# Enable site (tạo symlink)
+sudo ln -sf /etc/nginx/sites-available/tiny-url /etc/nginx/sites-enabled/
+
+# Xóa default site (nếu có)
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test cấu hình
+sudo nginx -t
+
+# Nếu test thành công, reload Nginx
+sudo systemctl reload nginx
+```
+
+**Cách 2: Dùng nano editor**
+
+```bash
+# Tạo file với nano
+sudo nano /etc/nginx/sites-available/tiny-url
+```
+
+Sau đó paste nội dung sau vào:
+```
+server {
+    listen 80;
+    server_name url.npxofficial.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+Nhấn `Ctrl+O` để save, `Enter` để confirm, `Ctrl+X` để thoát.
+
+Sau đó:
+```bash
+# Enable site
+sudo ln -sf /etc/nginx/sites-available/tiny-url /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 7.3. Kiểm tra lại sau khi tạo
+
+```bash
+# Kiểm tra file đã có nội dung chưa
+cat /etc/nginx/sites-available/tiny-url
+
+# Kiểm tra symlink
+ls -la /etc/nginx/sites-enabled/ | grep tiny-url
+
+# Kiểm tra Nginx status
+sudo systemctl status nginx
+```
+
+---
+
+## BƯỚC 7.5: XỬ LÝ XUNG ĐỘT PORT (Nếu port 3000 đã bị dùng)
+
+### Kiểm tra port nào đang được dùng:
+
+```bash
+# Kiểm tra port 3000 đang được dùng bởi service nào
+sudo lsof -i :3000
+# hoặc
+sudo netstat -tlnp | grep 3000
+```
+
+### Giải pháp: Đổi port cho tiny-url app
+
+**Bước 1: Cập nhật docker-compose.prod.yml**
+
+```bash
+nano docker-compose.prod.yml
+```
+
+Tìm dòng `ports:` và đổi từ `3000:3000` sang port khác (ví dụ `3001:3000`):
+
+```yaml
+ports:
+  - '127.0.0.1:3001:3000'  # Thay vì 3000:3000
+```
+
+**Bước 2: Cập nhật Nginx config**
+
+```bash
+sudo nano /etc/nginx/sites-available/tiny-url
+```
+
+Đổi `proxy_pass http://127.0.0.1:3000;` thành `proxy_pass http://127.0.0.1:3001;`
+
+**Bước 3: Restart services**
+
+```bash
+# Restart Docker containers
+docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.prod.yml up -d
+
+# Reload Nginx
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+---
+
+## BƯỚC 8: SETUP SSL (Trên VPS)
 
 ```bash
 sudo certbot --nginx -d url.npxofficial.com
@@ -180,8 +389,11 @@ sudo systemctl status nginx
 2. ✅ SSH vào VPS
 3. ✅ Clone code từ GitHub (VPS)
 4. ✅ Chạy script deploy tự động (VPS)
-5. ✅ Cấu hình DNS (nhà cung cấp domain)
-6. ✅ Setup SSL (VPS)
+5. ✅ **Chạy database migrations** (VPS) ⚠️ QUAN TRỌNG
+6. ✅ Kiểm tra ứng dụng (VPS)
+7. ✅ Cấu hình DNS (nhà cung cấp domain)
+8. ✅ Cấu hình Nginx (nếu chưa tự động)
+9. ✅ Setup SSL (VPS)
 
 **Tổng thời gian:** ~15-20 phút
 
@@ -207,6 +419,15 @@ git clone https://github.com/YOUR_USERNAME/tiny-url.git
 cd tiny-url
 chmod +x scripts/auto-deploy.sh
 ./scripts/auto-deploy.sh
+
+# Sau khi build thành công, chạy migrations:
+docker compose -f docker-compose.prod.yml run --rm web npx prisma migrate deploy
+
+# Kiểm tra containers:
+docker compose -f docker-compose.prod.yml ps
+
+# Lưu ADMIN_TOKEN:
+cat .env | grep ADMIN_TOKEN
 ```
 
 **Thay `YOUR_USERNAME` bằng username GitHub của bạn!**

@@ -29,7 +29,7 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:${DB_PASSWORD:-CHANGE_THIS_PASSWORD}@db:5432/tiny_url?schema=public
     ports:
-      - '127.0.0.1:3000:3000'  # Chỉ bind localhost, Nginx sẽ proxy
+      - '127.0.0.1:3001:3000'  # Port 3001 để tránh xung đột với n8n (port 3000)
     depends_on:
       db:
         condition: service_healthy
